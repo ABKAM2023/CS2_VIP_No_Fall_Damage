@@ -58,19 +58,16 @@ bool OnTakeDamage(int iVictimSlot, CTakeDamageInfo& pDamageInfo)
 }
 
 
-void OnClientAuthorized(int iSlot, uint64 iSteamID64)
+void OnClientAuthorized(int iSlot, bool bIsVIP)
 {
-    g_pUtils->NextFrame([iSlot]() {
-        g_bNoFallDamage[iSlot] = g_pVIPCore->VIP_GetClientFeatureBool(iSlot, "nofalldamage");
-        });
+    if(!bIsVIP) return;
+    g_bNoFallDamage[iSlot] = g_pVIPCore->VIP_GetClientFeatureBool(iSlot, "nofalldamage");
 }
 
 bool OnToggle(int iSlot, const char* szFeature, VIP_ToggleState eOldStatus, VIP_ToggleState& eNewStatus)
 {
-    if (strcmp(szFeature, "nofalldamage") == 0) {
-        g_bNoFallDamage[iSlot] = (eNewStatus == ENABLED);
-    }
-    return false;
+    g_bNoFallDamage[iSlot] = (eNewStatus == ENABLED);
+	return false;
 }
 
 void NoFallDamageModule::AllPluginsLoaded()
@@ -109,8 +106,8 @@ void NoFallDamageModule::AllPluginsLoaded()
 
     g_pVIPCore->VIP_RegisterFeature("nofalldamage", VIP_BOOL, TOGGLABLE, nullptr, OnToggle);
     g_pUtils->StartupServer(g_PLID, OnStartupServer);
-    g_pPlayers->HookOnClientAuthorized(g_PLID, OnClientAuthorized);
     g_pUtils->HookOnTakeDamagePre(g_PLID, OnTakeDamage);
+    g_pVIPCore->VIP_OnClientLoaded(OnClientAuthorized);
 }
 
 const char* NoFallDamageModule::GetLicense()
@@ -120,7 +117,7 @@ const char* NoFallDamageModule::GetLicense()
 
 const char* NoFallDamageModule::GetVersion()
 {
-    return "1.0";
+    return "1.1";
 }
 
 const char* NoFallDamageModule::GetDate()
