@@ -10,7 +10,6 @@ IVIPApi* g_pVIPCore = nullptr;
 IVEngineServer2* engine = nullptr;
 CGameEntitySystem* g_pGameEntitySystem = nullptr;
 CEntitySystem* g_pEntitySystem = nullptr;
-IPlayersApi* g_pPlayers = nullptr;
 
 bool g_bNoFallDamage[64]; 
 
@@ -37,7 +36,6 @@ bool NoFallDamageModule::Unload(char* error, size_t maxlen)
 {
     delete g_pVIPCore;
     delete g_pUtils;
-    delete g_pPlayers;
     return true;
 }
 
@@ -79,16 +77,6 @@ void NoFallDamageModule::AllPluginsLoaded()
     if (ret == META_IFACE_FAILED)
     {
         g_SMAPI->Format(error, sizeof(error), "Missing Utils system plugin");
-        ConColorMsg(Color(255, 0, 0, 255), "[%s] %s\n", GetLogTag(), error);
-        std::string sBuffer = "meta unload " + std::to_string(g_PLID);
-        engine->ServerCommand(sBuffer.c_str());
-        return;
-    }
-
-    g_pPlayers = (IPlayersApi*)g_SMAPI->MetaFactory(PLAYERS_INTERFACE, &ret, NULL);
-    if (ret == META_IFACE_FAILED)
-    {
-        g_SMAPI->Format(error, sizeof(error), "Missing Players system plugin");
         ConColorMsg(Color(255, 0, 0, 255), "[%s] %s\n", GetLogTag(), error);
         std::string sBuffer = "meta unload " + std::to_string(g_PLID);
         engine->ServerCommand(sBuffer.c_str());
