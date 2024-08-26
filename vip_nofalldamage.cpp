@@ -10,7 +10,6 @@ IVIPApi* g_pVIPCore = nullptr;
 IVEngineServer2* engine = nullptr;
 CGameEntitySystem* g_pGameEntitySystem = nullptr;
 CEntitySystem* g_pEntitySystem = nullptr;
-IPlayersApi* g_pPlayers = nullptr;
 
 bool g_bNoFallDamage[64]; 
 
@@ -37,7 +36,6 @@ bool NoFallDamageModule::Unload(char* error, size_t maxlen)
 {
     delete g_pVIPCore;
     delete g_pUtils;
-    delete g_pPlayers;
     return true;
 }
 
@@ -58,19 +56,16 @@ bool OnTakeDamage(int iVictimSlot, CTakeDamageInfo& pDamageInfo)
 }
 
 
-void OnClientAuthorized(int iSlot, uint64 iSteamID64)
+void OnClientAuthorized(int iSlot, bool bIsVIP)
 {
-    g_pUtils->NextFrame([iSlot]() {
-        g_bNoFallDamage[iSlot] = g_pVIPCore->VIP_GetClientFeatureBool(iSlot, "nofalldamage");
-        });
+    if(!bIsVIP) return;
+    g_bNoFallDamage[iSlot] = g_pVIPCore->VIP_GetClientFeatureBool(iSlot, "nofalldamage");
 }
 
 bool OnToggle(int iSlot, const char* szFeature, VIP_ToggleState eOldStatus, VIP_ToggleState& eNewStatus)
 {
-    if (strcmp(szFeature, "nofalldamage") == 0) {
-        g_bNoFallDamage[iSlot] = (eNewStatus == ENABLED);
-    }
-    return false;
+    g_bNoFallDamage[iSlot] = (eNewStatus == ENABLED);
+	return false;
 }
 
 void NoFallDamageModule::AllPluginsLoaded()
@@ -88,16 +83,6 @@ void NoFallDamageModule::AllPluginsLoaded()
         return;
     }
 
-    g_pPlayers = (IPlayersApi*)g_SMAPI->MetaFactory(PLAYERS_INTERFACE, &ret, NULL);
-    if (ret == META_IFACE_FAILED)
-    {
-        g_SMAPI->Format(error, sizeof(error), "Missing Players system plugin");
-        ConColorMsg(Color(255, 0, 0, 255), "[%s] %s\n", GetLogTag(), error);
-        std::string sBuffer = "meta unload " + std::to_string(g_PLID);
-        engine->ServerCommand(sBuffer.c_str());
-        return;
-    }
-
     g_pVIPCore = (IVIPApi*)g_SMAPI->MetaFactory(VIP_INTERFACE, &ret, NULL);
     if (ret == META_IFACE_FAILED)
     {
@@ -109,8 +94,8 @@ void NoFallDamageModule::AllPluginsLoaded()
 
     g_pVIPCore->VIP_RegisterFeature("nofalldamage", VIP_BOOL, TOGGLABLE, nullptr, OnToggle);
     g_pUtils->StartupServer(g_PLID, OnStartupServer);
-    g_pPlayers->HookOnClientAuthorized(g_PLID, OnClientAuthorized);
     g_pUtils->HookOnTakeDamagePre(g_PLID, OnTakeDamage);
+    g_pVIPCore->VIP_OnClientLoaded(OnClientAuthorized);
 }
 
 const char* NoFallDamageModule::GetLicense()
@@ -120,7 +105,7 @@ const char* NoFallDamageModule::GetLicense()
 
 const char* NoFallDamageModule::GetVersion()
 {
-    return "1.0";
+    return "1.1";
 }
 
 const char* NoFallDamageModule::GetDate()
